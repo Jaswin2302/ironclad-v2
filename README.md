@@ -1,90 +1,117 @@
-# ironclad
+# ironclad-v2
 
-A bare-metal Linux fleet monitoring system. No Docker, no Kubernetes, no cloud.
-
-## Architecture
-
-The **agent** (Rust) runs on each monitored machine as a systemd service. It reads CPU and memory metrics directly from the Linux kernel, encrypts/decrypts secrets using age, and streams JSON over a Unix socket.
-
-The **controller** (Go) connects to the agent socket, receives live metrics, fires sustained alerts when thresholds are exceeded, and exposes a Prometheus-compatible `/metrics` endpoint on port 9100.
-
-**Communication:** Unix domain sockets — no HTTP, no network stack, no cloud.
-
-## Stack
-
-- **Agent:** Rust, Tokio, sysinfo, serde, age encryption
-- **Controller:** Go, Prometheus client
-- **IPC:** Unix domain sockets
-- **Service management:** systemd
-- **Observability:** Prometheus-compatible `/metrics` endpoint
-- **Secret management:** age-encrypted secrets file
-
-## Features
-
-- Live CPU and memory metrics read directly from the Linux kernel
-- JSON serialization over Unix sockets — no HTTP, no network stack
-- Sustained alerting: fires when CPU > 80% or MEM > 90% for 10+ seconds
-- Age-encrypted secrets loaded at agent startup — plaintext never touches disk
-- Agent runs as a systemd service: starts on boot, restarts on crash
-- Prometheus `/metrics` endpoint with per-host labels for multi-node scraping
-- Fully static binary (musl) — single file, zero dependencies, runs anywhere
-- 1.3MB binary, 3.4MB RSS at idle
+SmartNIC-aware distributed training health monitor. Reads the Linux kernel directly,no cloud and Docker.
 
 ## Screenshots
 
-  <img width="431" height="211" alt="hostname_SR" src="https://github.com/user-attachments/assets/6bb89e13-64b0-413a-9d14-35510b759406" />
+![Dashboard](screenshots/dashboard.png)
 
-  <img width="426" height="217" alt="Stress_test" src="https://github.com/user-attachments/assets/39833328-1cc4-4a53-87af-b92638149a03" />
+![Controller](screenshots/controller.png)
 
-  <img width="758" height="373" alt="Prom_SR" src="https://github.com/user-attachments/assets/34091067-e26b-4d31-9c2a-ec15706dcf18" />
+![Metrics](screenshots/metrics.png)
+
+## What it does
+
+ironclad-v2 monitors the full networking stack of a Linux host and computes a real-time training health score. It detects the failure modes that silently kill distributed AI training jobs before they cause a full job stall.
+
+**Failure modes detected:**
+- Silent link degradation — NIC reports `up` but running below max speed
+- Packet loss on training fabric — any rx/tx drops trigger alerts
+- PCIe link degradation — GPU or NIC negotiated below max width/speed
+- RoCE congestion storms — CNP send rate spikes indicate DCQCN thrashing
+- RDMA sequence errors — packet reordering or drops at the RDMA layer
+- NIC queue starvation — rx missed errors from hardware buffer exhaustion
+
+## Architecture
+
+The **agent** (Rust) runs on each monitored host as a systemd service. It reads NIC counters from `/sys/class/net/`, RDMA counters from `/sys/class/infiniband/`, and PCIe link state from `/sys/bus/pci/devices/`. Metrics are serialized to JSON and streamed over a Unix socket.
+
+The **controller** (Go) receives the JSON stream, computes a 0-100 training health score, fires alerts on threshold violations, and exposes a Prometheus-compatible `/metrics` endpoint on port 9101.
+
+Grafana queries Prometheus to visualize health score, NIC drop rate, link state, and PCIe degradation over time.
+agent (Rust) → Unix socket → controller (Go) → Prometheus → Grafana
+
+## Stack
+
+- **Agent:** Rust, Tokio, sysinfo, serde
+- **Controller:** Go, Prometheus client
+- **IPC:** Unix domain sockets
+- **Observability:** Prometheus + Grafana
+- **Service management:** systemd
+
+## Metrics exposed
+
+| Metric | Description |
+|--------|-------------|
+| `ironclad_training_health_score` | Composite health score 0-100 |
+| `ironclad_nic_link_up` | NIC link state per interface |
+| `ironclad_nic_link_speed_mbps` | NIC link speed in Mbps |
+| `ironclad_nic_rx_dropped_total` | Cumulative rx drops |
+| `ironclad_nic_tx_dropped_total` | Cumulative tx drops |
+| `ironclad_nic_rx_errors_total` | Cumulative rx errors |
+| `ironclad_pcie_degraded` | PCIe link degraded flag |
+| `ironclad_pcie_link_width_current` | Current PCIe link width |
+| `ironclad_rdma_cnp_sent_total` | RoCE congestion notifications sent |
+| `ironclad_rdma_packet_seq_errors_total` | RDMA sequence errors |
+| `ironclad_rdma_slow_restart_total` | RoCE slow restarts |
+
+## Health score
+
+The controller computes a health score every 2 seconds:
+
+| Condition | Penalty |
+|-----------|---------|
+| NIC link down | -40 |
+| Any rx/tx drops | -20 |
+| Any rx/tx errors | -10 |
+| Missed packets | -15 |
+| PCIe degraded | -25 |
+| RDMA receive errors | -15 |
+| RDMA sequence errors | -25 |
+| RoCE congestion | -10 |
+
+Score floor is 0. Grafana thresholds: green ≥ 90, yellow ≥ 70, red < 70.
 
 ## Running
 
-**Start the agent (or install as systemd service):**
+**Agent:**
 ```bash
 cd agent && cargo build --release
 sudo cp systemd/ironclad-agent.service /etc/systemd/system/
 sudo systemctl enable --now ironclad-agent
 ```
 
-**Start the controller:**
+**Controller:**
 ```bash
-cd controller && go run main.go
+cd controller && go build -o ironclad-controller .
+./ironclad-controller
 ```
 
-**View Prometheus metrics:**
-http://localhost:9100/metrics
+**Metrics endpoint:**
+http://localhost:9101/metrics
 
+## Grafana dashboard
 
-**Test alerting (simulate high CPU):**
+Import `dashboard/ironclad-training-health.json` into Grafana with Prometheus as the data source pointed at `localhost:9090`.
+
+## Simulation
+
+Packet loss simulation requires bare-metal Linux or a VM with a real NIC driver. WSL's virtual network stack does not propagate netem drops to sysfs counters.
+
+On bare-metal:
 ```bash
-stress-ng --cpu 16 --timeout 60s
+sudo tc qdisc add dev eth0 root netem loss 0.1%
+# watch health score drop in Grafana
+sudo tc qdisc del dev eth0 root
 ```
-Controller will fire `[ALERT]` after 10 seconds of sustained CPU above 80%.
 
+## Tests
 
-**Run tests:**
 ```bash
 cd agent && cargo test
 cd controller && go test
 ```
 
-## Secret Management
+## Origin
 
-Secrets are encrypted with [age](https://age-encryption.org/) and loaded at agent startup:
-
-```bash
-age-keygen -o secrets/identity.txt
-age -r <pubkey> -o secrets/secrets.age secrets/secrets.txt
-```
-
-The private key (`identity.txt`) is never committed to git.
-
-
-## Philosophy
-
-Read the kernel directly. Write as little code as possible and understand every line of Rust and Go. No Docker, no cloud. Just Linux, sockets, and binaries that work.
-
-  
-
-
+Built on top of [ironclad](https://github.com/Jaswin2302/ironclad) — a bare-metal Linux fleet monitor.
