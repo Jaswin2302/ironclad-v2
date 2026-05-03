@@ -282,7 +282,7 @@ func main() {
 	go func() {
 		http.Handle("/metrics", promhttp.Handler())
 		fmt.Println("[ironclad-controller] Prometheus metrics at :9100/metrics")
-		http.ListenAndServe(":9100", nil)
+		http.ListenAndServe(":9101", nil)
 	}()
 
 	for {
