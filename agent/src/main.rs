@@ -5,6 +5,10 @@ use serde::Serialize;
 use tokio::net::UnixListener;
 use tokio::io::AsyncWriteExt;
 
+mod nic;
+mod rdma;
+mod pcie;
+
 #[derive(Serialize)]
 struct Metrics {
     timestamp: u64,
@@ -13,6 +17,9 @@ struct Metrics {
     mem_percent: f64,
     mem_used_mb: u64,
     mem_total_mb: u64,
+    nics: Vec<nic::NicStats>,
+    rdma: Vec<rdma::RdmaStats>,
+    pcie: Vec<pcie::PcieStats>,
 }
 
 fn timestamp() -> u64 {
@@ -62,6 +69,9 @@ fn collect_metrics(sys: &mut System, hostname: &str) -> Metrics {
         mem_percent: (used_mem as f64 / total_mem as f64) * 100.0,
         mem_used_mb: used_mem / 1024 / 1024,
         mem_total_mb: total_mem / 1024 / 1024,
+        nics: nic::collect(),
+        rdma: rdma::collect(),
+        pcie: pcie::collect(),
     }
 }
 
@@ -88,7 +98,6 @@ async fn main() {
 
         let host = host.clone();
 
-        // Spawn a new task for each connection so multiple controllers can connect simultaneously
         tokio::spawn(async move {
             let mut sys = System::new_all();
             loop {

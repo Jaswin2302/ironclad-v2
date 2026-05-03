@@ -1,0 +1,11 @@
+/home/jaswin23_/ironclad-v2/agent/target/debug/deps/i18n_embed-4ed63503d515ae1a.d: /home/jaswin23_/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/i18n-embed-0.15.4/src/lib.rs /home/jaswin23_/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/i18n-embed-0.15.4/src/assets.rs /home/jaswin23_/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/i18n-embed-0.15.4/src/requester.rs /home/jaswin23_/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/i18n-embed-0.15.4/src/util.rs /home/jaswin23_/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/i18n-embed-0.15.4/src/fluent.rs
+
+/home/jaswin23_/ironclad-v2/agent/target/debug/deps/libi18n_embed-4ed63503d515ae1a.rlib: /home/jaswin23_/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/i18n-embed-0.15.4/src/lib.rs /home/jaswin23_/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/i18n-embed-0.15.4/src/assets.rs /home/jaswin23_/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/i18n-embed-0.15.4/src/requester.rs /home/jaswin23_/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/i18n-embed-0.15.4/src/util.rs /home/jaswin23_/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/i18n-embed-0.15.4/src/fluent.rs
+
+/home/jaswin23_/ironclad-v2/agent/target/debug/deps/libi18n_embed-4ed63503d515ae1a.rmeta: /home/jaswin23_/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/i18n-embed-0.15.4/src/lib.rs /home/jaswin23_/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/i18n-embed-0.15.4/src/assets.rs /home/jaswin23_/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/i18n-embed-0.15.4/src/requester.rs /home/jaswin23_/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/i18n-embed-0.15.4/src/util.rs /home/jaswin23_/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/i18n-embed-0.15.4/src/fluent.rs
+
+/home/jaswin23_/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/i18n-embed-0.15.4/src/lib.rs:
+/home/jaswin23_/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/i18n-embed-0.15.4/src/assets.rs:
+/home/jaswin23_/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/i18n-embed-0.15.4/src/requester.rs:
+/home/jaswin23_/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/i18n-embed-0.15.4/src/util.rs:
+/home/jaswin23_/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/i18n-embed-0.15.4/src/fluent.rs:
